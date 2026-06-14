@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="get:\cases\(nationalID):uhub-sapi-config">
+		<ee:transform doc:name="Set correlationId And payload" doc:id="994d05cf-053b-4b33-9721-b5e1c472aff1">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="CorrelationID"><![CDATA[attributes.headers.'x-correlation-id' default ""]]></ee:set-variable>
+				<ee:set-variable variableName="national_id"><![CDATA[attributes.uriParams.'nationalID']]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start Log" doc:id="ad0fddd9-7c08-4976-9d2a-6a5e9b1005ab" message='transactionID : #[vars.transactionID], correlationID : #[vars.correlationID]; message : "start get covid case by national id flow", #[payload]' />
+		<set-variable value="#[attributes.uriParams.nationalID]" doc:name="Set Variable" doc:id="1b98f95b-ce2f-495b-b900-970e8e4b3ad7" variableName="national_id"/>
+		<flow-ref doc:name="Flow Reference" doc:id="81c173bf-1f9e-439a-9874-06dea6c99425" name="get-covid-case-by-national-id-db" />
+		<choice doc:name="Choice" doc:id="e4b41e0c-7842-4c17-9988-aa33b45d4ca3" >
+			<when expression="#[sizeOf(payload) &gt; 0]">
+				<ee:transform doc:name="Sucess response" doc:id="12aa7ffe-7356-4d14-b192-931ee6ba2ae3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map {
+		"source": $.source,
+		"caseID": $.case_id,
+		"caseType": $.case_type,
+		first_name :$.first_name,
+		last_name : $.last_name,
+		phone : $.phone,
+		email : $.email,
+		date_of_birth : $.date_of_birth,
+		national_id : $.national_id,
+		national_id_type : $.national_id_type,
+		address : {
+		street_address : $.street_address,
+		city : $.city,
+		state : $.state,
+		postal : $.postal,
+		country : $.country,
+		},
+		create_date : $.create_date,
+		update_date : $.update_date, 
+		create_by : $.create_by,
+		update_by  :$.update_by
+		
+		
+	}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Not Found Response" doc:id="99fdb749-4d98-4768-9f10-65f6cc17a90a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Code" : "404",
+	"message" : "The server has not found anything matching the Request-URI",
+	"date" : now() as String {format : "yyyy-MM-dd'T'HH:mm:ss'Z'"},
+	"TransactionID" : vars.TransactionID
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="End log" doc:id="f4f91506-3f6e-4483-9bad-1d6feb47c531" message="Complete get covid case by national ID flow" />
+    
+</flow>
+	</mule>

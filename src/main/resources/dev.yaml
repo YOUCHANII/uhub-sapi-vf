@@ -1,0 +1,10 @@
+http:
+  port: "8081"
+ 
+db:
+  uhub:
+     host: "uhub-dev.cm3e8ke8404v.us-east-1.rds.amazonaws.com"
+     port: "3306"
+     user: "uhub_dev_user"
+     password: "![tP9pBUBv1BKEN4L/oUyYRw==]"
+     serve: "innodb"

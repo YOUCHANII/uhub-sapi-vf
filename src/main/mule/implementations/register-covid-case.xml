@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="post:\cases:application\json:uhub-sapi-config">
+		<ee:transform doc:name="Set correlationId And Prepare payload" doc:id="a7fd5103-6343-4298-bb2f-357b8d24f188">
+			<ee:message >
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="InputPayload"><![CDATA[%dw 2.0
+output application/java
+
+var date = now() as String {format : "yyyy-MM-dd"}
+var owner = "Yassine"
+---
+
+{
+	"source": payload.source,
+	"case_type": payload.caseType,
+	"first_name": payload.firstName,
+	"last_name": payload.lastName,
+	"phone": payload.phone,
+	"email": payload.email,
+	"date_of_birth": payload.dateOfBirth,
+	"national_id":payload.nationalID,
+	"national_id_type": payload.nationalIDType,
+	"street_address": payload.address.streetAddress,
+	"city": payload.address.city,
+	"state": payload.address.state,
+	"postal": payload.address.postal,
+	"country": payload.address.country,
+	"create_date": date,
+    "update_date": date,
+    "create_by": owner,
+    "update_by": owner
+
+}]]></ee:set-variable>
+				<ee:set-variable variableName="CorrelationID"><![CDATA[attributes.headers.'x-correlation-id' default ""]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start Log" doc:id="e5a75c57-04b7-429c-a552-5ea3039877d4" message='transactionID : #[vars.transactionID], correlationID : #[vars.correlationID]; message : "start register covid case flow", #[payload]' />
+		<flow-ref doc:name="insert-covid-case-sub-flow" doc:id="4a0bca94-14fe-44c9-a7ff-f0ab84c94b4a" name="insert-covid-case-sub-flow" />
+		<ee:transform doc:name="Success Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  caseID: payload[0][0]
+} ]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<logger level="INFO" doc:name="End log" doc:id="3139a305-d04e-409f-bcff-b5380b8a751a" message="Complete  register covid case flow"/>
+    
+</flow>
+	</mule>
